@@ -1,77 +1,10 @@
 """
-Session builder for ARC-style same/different experiment (fMRI-friendly).
+Build "session.json" for the fMRI experiment on MATLAB/PTB.
 
-This script creates a `session.json` that a stimulus runner (e.g., Psychtoolbox) can execute.
-
-High-level design
------------------
-A session consists of multiple blocks. Each block contains 4 phases:
-
-  1) phase_start (inference)
-     - shows ONE trial (two images) to establish the initial "rule context"
-
-  2) inference
-     - decision phase with `n_decisions_per_phase` trials
-     - the rule context UPDATES after each trial (swap_context=True)
-     - each trial is labeled:
-         correct="same"      -> trial uses the current context (family + sub_rule)
-         correct="different" -> trial uses a different context (different sub_rule, or different family in mix blocks)
-
-  3) phase_start (application)
-     - shows ONE trial (two images) to establish the memorized rule context
-
-  4) application
-     - decision phase with `n_decisions_per_phase` trials
-     - the rule context stays FIXED (swap_context=False)
-     - trials are labeled same/different relative to that fixed context
-
-Block types
------------
-- Family blocks: sampling is restricted to ONE family (restrict_family=<family>).
-- Mix blocks: sampling spans ALL families (restrict_family=None).
-
-"Same" vs "Different"
----------------------
-Important: "same" means same RULE CONTEXT (same family + sub_rule), not identical images.
-Even for "same", two fresh stimuli are sampled (without replacement) from the same pool.
-
-Stimulus input format
----------------------
-Expected directory layout:
-
-  out/<rule_dir>/stimuli.jsonl
-  out/<rule_dir>/<stim_id>.combined.png
-
-Each JSONL row should contain at least:
-  - id:        unique stimulus identifier (used to find <id>.combined.png)
-  - rule:      sub_rule string (e.g., "expansion.star_full")
-Optional:
-  - family:    family string (if missing, inferred as rule.split(".", 1)[0])
-  - seed:      generation seed for reproducibility
-
-Output JSON schema (session.json)
---------------------------------
-session = {
-  "participant": str,
-  "keys": {"same": str, "different": str},   # KbName-compatible names (e.g., "LeftArrow")
-  "blocks": [block, ...]
-}
-
-block = {
-  "block_id": int,
-  "family": <family name> or "mix",
-  "phases": [phase_start, inference, phase_start, application]
-}
-
-trial entry = {
-  "imgs":   [<relpath-to-first>, <relpath-to-second>],
-  "family": str,
-  "sub_rule": str,
-  "ids":   [id1, id2],
-  "seeds": [seed1, seed2],
-  "correct": "same" | "different"   # only for decision phases
-}
-
+Make sure your generated stimulus dataset has:
+- at least 2 rules in each family
+- at least twice many decision trials as rule number (in each family)
+- at least half many stimuli in each rule as decision trials
 """
 
 import json
@@ -79,351 +12,254 @@ import random
 from pathlib import Path
 
 
-# ---------------- IO ----------------
-def load_jsonl(path: Path) -> list[dict]:
-    if not path.exists():
-        return []
-    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
-
-
-def relpath(path: Path, base_dir: Path) -> str:
-    return str(path.resolve().relative_to(base_dir)).replace("\\", "/")
-
-
-# ---------------- pretty key labels ----------------
-DISPLAY_KEY = {
-    "LeftArrow": "←",
-    "RightArrow": "→",
-    "ESCAPE": "Esc",
-}
-
-
-def key_label(key_name: str) -> str:
-    return DISPLAY_KEY.get(key_name, key_name)
-
-
-def tip_pair(left_key: str, left_text: str, right_key: str, right_text: str, gap: int = 10) -> str:
-    # Creates: "←   Same          Different   →"
-    left = f"{key_label(left_key)}   {left_text}"
-    right = f"{right_text}   {key_label(right_key)}"
-    return left + (" " * gap) + right
-
-
-# ---------------- stimuli pool ----------------
-def collect_pools(out_root: Path) -> dict[str, dict[str, list[dict]]]:
-    """
-    Build stimulus pools from `out_root`.
-
-    Returns:
-      pools[family][sub_rule] = list of stimulus dicts:
-        {"id": <str>, "seed": <int|None>, "combined_path": <Path>}
-
-    Expects:
-      out/<rule_dir>/stimuli.jsonl
-      out/<rule_dir>/<stim_id>.combined.png
-
-    Notes:
-      - sub_rule is read from JSON key "rule"
-      - family is read from JSON key "family" or inferred from sub_rule prefix
-    """
-    pools: dict[str, dict[str, list[dict]]] = {}
-
-    for rule_dir in out_root.iterdir():
-        if not rule_dir.is_dir():
-            continue
-
-        stim_path = rule_dir / "stimuli.jsonl"
-        for stim_meta in load_jsonl(stim_path):
-            sub_rule = stim_meta.get("rule")
-            stim_id = stim_meta.get("id")
-            if not sub_rule or not stim_id:
-                continue
-
-            combined_path = rule_dir / f"{stim_id}.combined.png"
-            if not combined_path.exists():
-                continue
-
-            family = stim_meta.get("family") or sub_rule.split(".", 1)[0] or "unknown"
-            pools.setdefault(family, {}).setdefault(sub_rule, []).append(
-                {"id": stim_id, "seed": stim_meta.get("seed"), "combined_path": combined_path}
-            )
-
-    return pools
-
-
-# ---------------- picking ----------------
-def uid(stimulus: dict) -> str:
-    return str(stimulus.get("id") or stimulus["combined_path"])
-
-
-def available_pairs(pool: list[dict], used_stimuli_ids: set[str]) -> int:
-    return sum(1 for stimulus in pool if uid(stimulus) not in used_stimuli_ids) // 2
-
-
-def pick_pair(pool: list[dict], rng: random.Random, used_stimuli_ids: set[str]) -> tuple[dict, dict]:
-    unused = [stimulus for stimulus in pool if uid(stimulus) not in used_stimuli_ids]
-    if len(unused) < 2:
-        raise ValueError("Not enough unused stimuli for a pair.")
-    rng.shuffle(unused)
-    stim_first, stim_second = unused[0], unused[1]
-    used_stimuli_ids.add(uid(stim_first))
-    used_stimuli_ids.add(uid(stim_second))
-    return stim_first, stim_second
-
-
-def pick_sub_rule(
-        family_pool: dict[str, list[dict]],
-        rng: random.Random,
-        used_stimuli_ids: set[str],
-        avoid: str | None = None
-) -> str:
-    candidate_sub_rules = [
-        sub_rule
-        for sub_rule, pool in family_pool.items()
-        if sub_rule != avoid and available_pairs(pool, used_stimuli_ids) >= 1
-    ]
-    if not candidate_sub_rules:
-        raise ValueError("No sub_rule has enough remaining pairs.")
-    return rng.choice(candidate_sub_rules)
-
-
-def pick_any(
-        pools: dict[str, dict[str, list[dict]]],
-        rng: random.Random,
-        used_stimuli_ids: set[str],
-        avoid: tuple[str, str] | None = None,
-        restrict_family: str | None = None
-) -> tuple[str, str]:
-    candidate_contexts: list[tuple[str, str]] = []
-    family_items = [(restrict_family, pools[restrict_family])] if restrict_family else pools.items()
-
-    for family, family_pool in family_items:
-        for sub_rule, pool in family_pool.items():
-            if avoid and (family, sub_rule) == avoid:
-                continue
-            if available_pairs(pool, used_stimuli_ids) >= 1:
-                candidate_contexts.append((family, sub_rule))
-
-    if not candidate_contexts:
-        raise ValueError("No (family, sub_rule) has enough remaining pairs.")
-    return rng.choice(candidate_contexts)
-
-
-def trial_entry(
-        family: str,
-        sub_rule: str,
-        pair: tuple[dict, dict],
-        base_dir: Path,
-        correct: str | None = None
-) -> dict:
-    stim_first, stim_second = pair
-    trial = {
-        "imgs": [relpath(stim_first["combined_path"], base_dir), relpath(stim_second["combined_path"], base_dir)],
-        "family": family,
-        "sub_rule": sub_rule,
-        "ids": [stim_first.get("id"), stim_second.get("id")],
-        "seeds": [stim_first.get("seed"), stim_second.get("seed")],
-    }
-    if correct in ("same", "different"):
-        trial["correct"] = correct
-    return trial
-
-
-# ---------------- phase building ----------------
-def make_phase_start(
-        family: str,
-        sub_rule: str,
-        pools,
-        rng,
-        used_stimuli_ids,
-        base_dir,
-        bg: str,
-        hint: str,
-        tip: str
-) -> dict:
-    pair = pick_pair(pools[family][sub_rule], rng, used_stimuli_ids)
-    return {
-        "phase": "phase_start",
-        "bg": bg,
-        "hint": hint,
-        "tip": tip,
-        "trial": [trial_entry(family, sub_rule, pair, base_dir)],
-    }
-
-
-def make_decision_phase(
-        name: str,
-        pools,
-        rng: random.Random,
-        used_stimuli_ids: set[str],
-        base_dir: Path,
-        n_trials: int,
-        p_same: float,
-        bg: str,
-        hint: str,
-        tip: str,
-        context: tuple[str, str],
-        swap_context: bool,
-        restrict_family: str | None = None,
-) -> tuple[dict, tuple[str, str]]:
-    """
-    Create a decision phase (inference or application).
-
-    Parameters:
-      context = (context_family, context_sub_rule)
-      swap_context:
-        - True  -> context becomes the context sampled for each trial (inference)
-        - False -> context stays the same across trials (application)
-
-      restrict_family:
-        - None       -> sample across all families (mix block)
-        - <family>   -> sample only within that family (family block)
-
-    Trial labeling:
-      - correct="same": sampled (family, sub_rule) equals current context
-      - correct="different": sampled context differs from current context
-    """
-    context_family, context_sub_rule = context
-    trials: list[dict] = []
-
-    for _ in range(n_trials):
-        want_same = rng.random() < p_same
-
-        # Decide which context to sample for this trial
-        if want_same:
-            sub_rule_pool = pools.get(context_family, {}).get(context_sub_rule, [])
-            if (restrict_family is None or context_family == restrict_family) and available_pairs(sub_rule_pool, used_stimuli_ids) >= 1:
-                family, sub_rule, correct = context_family, context_sub_rule, "same"
-            else:
-                family, sub_rule = pick_any(
-                    pools, rng, used_stimuli_ids,
-                    avoid=(context_family, context_sub_rule),
-                    restrict_family=restrict_family,
-                )
-                correct = "different"
-        else:
-            family, sub_rule = pick_any(
-                pools, rng, used_stimuli_ids,
-                avoid=(context_family, context_sub_rule),
-                restrict_family=restrict_family,
-            )
-            correct = "different"
-
-        pair = pick_pair(pools[family][sub_rule], rng, used_stimuli_ids)
-        trials.append(trial_entry(family, sub_rule, pair, base_dir, correct=correct))
-
-        if swap_context:
-            context_family, context_sub_rule = family, sub_rule
-
-    phase = {"phase": name, "bg": bg, "hint": hint, "tip": tip, "trials": trials}
-    return phase, (context_family, context_sub_rule)
-
-
-# ---------------- session builder ----------------
 def build_session(
         out_root: str = "out",
-        participant: str = "p001",
         session_path: str = "session.json",
-        seed: int = 1,  # Change seed to get different session
-        key_same: str = "LeftArrow",
-        key_diff: str = "RightArrow",
-        n_family_blocks: int = 6,
-        n_mix_blocks: int = 2,
-        n_decisions_per_phase: int = 8,
-        p_same_inference: float = 0.5,
-        p_same_application: float = 0.5,
-        inference_bg: str = "green",
-        inference_hint: str = "Previous rule",
-        application_bg: str = "red",
-        application_hint: str = "Memorized rule",
-):
+        participant: str = "p001",
+        seed: int = 1,
+        number_of_mix_blocks: int = 2,
+        number_of_decision_trials_per_phase: int = 8,
+) -> None:
+    """
+    Main entry: loads stimulus pools and writes a randomized block/phase structure to session.json
+    """
+
     rng = random.Random(seed)
-    out_base = Path(out_root).resolve()
-    session_file = Path(session_path).resolve()
-    base_dir = session_file.parent.resolve()
+
+    out_root_path = Path(out_root).resolve()
+    session_file_path = Path(session_path).resolve()
+    base_dir = session_file_path.parent.resolve()
     base_dir.mkdir(parents=True, exist_ok=True)
 
-    pools = collect_pools(out_base)
-    families = sorted(pools.keys())
-    rng.shuffle(families)
+    # Collect pools: pools[family][rule] -> list of stimulus records (each record points to its combined image)
+    pools: dict[str, dict[str, list[dict]]] = {}
 
-    TIP_READY = tip_pair(key_same, "Ready", key_diff, "Ready")
-    TIP_MEMO = tip_pair(key_same, "Memorized", key_diff, "Memorized")
-    TIP_DECIDE = tip_pair(key_same, "Same", key_diff, "Different")
+    for rule_directory in out_root_path.iterdir():
+        for row in map(json.loads, (rule_directory / "stimuli.jsonl").read_text(encoding="utf-8").splitlines()):
+            family = row["family"]
+            rule = row["rule"]
+            if family not in pools:
+                pools[family] = {}
+            if rule not in pools[family]:
+                pools[family][rule] = []
+            pools[family][rule].append(
+                {
+                    "id": row["id"],
+                    "seed": row["seed"],
+                    "combined_path": rule_directory / f'{row["id"]}.combined.png',
+                    "params": row["params"],
+                    "difficulty": row["difficulty"],
+                }
+            )
 
-    def build_block(block_id: int, restrict_family: str | None) -> dict:
-        used_stimuli_ids: set[str] = set()
+    families = list(pools)
+    rng.shuffle(families)  # so that family blocks are shuffled
 
-        # ---- phase_start + inference (context updates each trial) ----
-        first_family, first_sub_rule = pick_any(pools, rng, used_stimuli_ids, restrict_family=restrict_family)
-        phase_start_inference = make_phase_start(
-            first_family, first_sub_rule, pools, rng, used_stimuli_ids, base_dir,
-            inference_bg, "First rule", TIP_READY
-        )
+    # Hardcoded UI bits (MATLAB runner uses these strings directly)
+    keys = {"same": "LeftArrow", "different": "RightArrow"}
+    tip_ready = "←   Ready          Ready   →"
+    tip_memorized = "←   Memorized      Memorized   →"
+    tip_decide = "←   Same          Different   →"
+    inference_background, inference_hint, inference_start_hint = "green", "Previous rule", "First rule"
+    application_background, application_hint, application_start_hint = "red", "Memorized rule", "Memorize this rule"
 
-        inference_phase, (context_family, context_sub_rule) = make_decision_phase(
-            "inference", pools, rng, used_stimuli_ids, base_dir,
-            n_decisions_per_phase, p_same_inference,
-            inference_bg, inference_hint, TIP_DECIDE,
-            context=(first_family, first_sub_rule),
-            swap_context=True,
-            restrict_family=restrict_family,
-        )
+    def relative_path(image_path: Path) -> str:
+        """
+        Convert absolute file paths to paths relative to the session file location (portable across machines)
+        """
+        return str(image_path.resolve().relative_to(base_dir)).replace("\\", "/")
 
-        # ---- phase_start + application (context fixed across trials) ----
-        memorized_family, memorized_sub_rule = pick_any(pools, rng, used_stimuli_ids, restrict_family=restrict_family)
-        phase_start_application = make_phase_start(
-            memorized_family, memorized_sub_rule, pools, rng, used_stimuli_ids, base_dir,
-            application_bg, "Memorize this rule", TIP_MEMO
-        )
+    def pick_pair(stimulus_pool: list[dict], used_stimulus_ids: set[str]) -> tuple[dict, dict]:
+        """
+        Draw two unique stimuli from a rule pool (no reuse within the current block).
+        """
+        unused_records = [record for record in stimulus_pool if record["id"] not in used_stimulus_ids]
+        rng.shuffle(unused_records)  # Randomize which unused items are selected.
+        first, second = unused_records[0], unused_records[1]
+        used_stimulus_ids.add(first["id"])
+        used_stimulus_ids.add(second["id"])
+        return first, second
 
-        application_phase, _ = make_decision_phase(
-            "application", pools, rng, used_stimuli_ids, base_dir,
-            n_decisions_per_phase, p_same_application,
-            application_bg, application_hint, TIP_DECIDE,
-            context=(memorized_family, memorized_sub_rule),
-            swap_context=False,
-            restrict_family=restrict_family,
-        )
+    def make_labels(number_of_decisions: int, max_run: int = 3) -> list[str]:
+        """
+        Generate a balanced same/different label sequence with a cap on repeated labels (prevents long streaks)
+        """
+        number_of_same_trials = number_of_decisions // 2
+        number_of_different_trials = number_of_decisions - number_of_same_trials
+        labels = ["same"] * number_of_same_trials + ["different"] * number_of_different_trials
 
-        family_label = restrict_family if restrict_family else "mix"
-        return {
-            "block_id": block_id,
-            "family": family_label,
-            "phases": [phase_start_inference, inference_phase, phase_start_application, application_phase],
+        while True:
+            rng.shuffle(labels)
+            run_length = 1
+            valid = True
+            for i in range(1, len(labels)):
+                if labels[i] == labels[i - 1]:
+                    run_length += 1
+                    if run_length > max_run:
+                        valid = False
+                        break
+                else:
+                    run_length = 1
+            if valid:
+                return labels
+
+    def build_rule_path(allowed_rules: list[tuple[str, str]], number_of_decisions: int) -> list[tuple[str, str]]:
+        """
+        Build the per-phase rule sequence: respects same/different label counts and prefers unused rules for coverage
+        """
+        rules = allowed_rules[:]
+        rng.shuffle(rules)  # randomize rule priority (affects coverage order)
+
+        labels = make_labels(number_of_decisions, max_run=3)
+
+        rule_path = [rng.choice(rules)]
+        used_rules = {rule_path[0]}
+
+        for label in labels:
+            previous_rule = rule_path[-1]
+
+            if label == "same":
+                rule_path.append(previous_rule)
+                continue
+
+            # label == "different": prefer a rule not used yet in this phase, but never repeat previous
+            candidates = [r for r in rules if r != previous_rule and r not in used_rules]
+            if not candidates:
+                candidates = [r for r in rules if r != previous_rule]  # all rules used: just pick any other rule
+
+            next_rule = rng.choice(candidates)
+            rule_path.append(next_rule)
+            used_rules.add(next_rule)
+
+        return rule_path
+
+    def make_trial_entry(family: str, rule: str, first: dict, second: dict, correct: str | None) -> dict:
+        """
+        Create the JSON trial entry
+        """
+        trial = {
+            "imgs": [
+                relative_path(first["combined_path"]),
+                relative_path(second["combined_path"])
+            ],
+            "family": family,
+            "rule": rule,
+            "stimuli": [
+                {
+                    "id": first["id"],
+                    "seed": first.get("seed"),
+                    "params": first.get("params"),
+                    "difficulty": first.get("difficulty"),
+                },
+                {
+                    "id": second["id"],
+                    "seed": second.get("seed"),
+                    "params": second.get("params"),
+                    "difficulty": second.get("difficulty"),
+                },
+            ],
         }
 
+        if correct in ("same", "different"):  # only decision trials have a correct answer, phase starts don't
+            trial["correct"] = correct
+        return trial
+
+    def build_phase(
+            phase_name: str,
+            allowed_contexts: list[tuple[str, str]],
+            used_stimulus_ids: set[str],
+            background: str,
+            start_hint: str,
+            decision_hint: str,
+            start_tip: str,
+            decision_tip: str
+    ) -> list[dict]:
+        """
+        Build a phase consisting of one phase_start trial + a list of decision trials
+        """
+        rule_path = build_rule_path(allowed_contexts, number_of_decision_trials_per_phase)
+
+        # phase_start uses the first rule to establish context (no response recorded here)
+        start_family, start_rule = rule_path[0]
+        first, second = pick_pair(pools[start_family][start_rule], used_stimulus_ids)
+        phase_start = {
+            "phase": "phase_start",
+            "bg": background,
+            "hint": start_hint,
+            "tip": start_tip,
+            "trial": [make_trial_entry(start_family, start_rule, first, second, correct=None)],
+        }
+
+        # Decision trials: correct label is derived from whether rule changed vs previous trial
+        decision_trials = []
+        for index in range(1, len(rule_path)):
+            family, rule = rule_path[index]
+            previous_context = rule_path[index - 1]
+            correct_label = "same" if (family, rule) == previous_context else "different"
+
+            first, second = pick_pair(pools[family][rule], used_stimulus_ids)
+            decision_trials.append(make_trial_entry(family, rule, first, second, correct=correct_label))
+
+        decision_phase = {
+            "phase": phase_name,
+            "bg": background,
+            "hint": decision_hint,
+            "tip": decision_tip,
+            "trials": decision_trials,
+        }
+        return [phase_start, decision_phase]
+
+    def build_block(block_id: int, restrict_family: str | None) -> dict:
+        """
+        Build one block: either a single-family block or a mix block drawing from all families
+        """
+        used_stimulus_ids: set[str] = set()
+
+        if restrict_family is None:
+            allowed_contexts = [(family, rule) for family, family_pool in pools.items() for rule in family_pool]
+            family_label = "mix"
+        else:
+            allowed_contexts = [(restrict_family, rule) for rule in pools.get(restrict_family, {})]
+            family_label = restrict_family
+
+        phases = []
+        phases += build_phase(
+            "inference",
+            allowed_contexts,
+            used_stimulus_ids,
+            inference_background,
+            inference_start_hint,
+            inference_hint,
+            tip_ready,
+            tip_decide
+        )
+        phases += build_phase(
+            "application",
+            allowed_contexts,
+            used_stimulus_ids,
+            application_background,
+            application_start_hint,
+            application_hint,
+            tip_memorized,
+            tip_decide
+        )
+
+        return {"block_id": block_id, "family": family_label, "phases": phases}
+
+    # Build the full session: family blocks first (shuffled), then a few mix blocks at the end
     blocks: list[dict] = []
     next_block_id = 1
 
-    # ---- family-restricted blocks ----
-    for family in families[:n_family_blocks]:
-        try:
-            blocks.append(build_block(next_block_id, restrict_family=family))
-            next_block_id += 1
-        except ValueError:
-            pass
+    for family in families:
+        blocks.append(build_block(next_block_id, restrict_family=family))
+        next_block_id += 1
 
-    # ---- mixed blocks ----
-    for _ in range(n_mix_blocks):
-        try:
-            blocks.append(build_block(next_block_id, restrict_family=None))
-            next_block_id += 1
-        except ValueError:
-            break
+    for _ in range(number_of_mix_blocks):
+        blocks.append(build_block(next_block_id, restrict_family=None))
+        next_block_id += 1
 
-    session = {
-        "participant": participant,
-        "keys": {"same": key_same, "different": key_diff},
-        "blocks": blocks,
-    }
-    session_file.write_text(json.dumps(session, ensure_ascii=False, indent=2), encoding="utf-8")
-
-    print("Wrote:", session_file)
-    print("Blocks:", len(blocks), f"(target: {n_family_blocks + n_mix_blocks})")
-    for block in blocks:
-        n_items = sum(len(phase.get("trial", [])) + len(phase.get("trials", [])) for phase in block["phases"])
-        print(f"  block {block['block_id']:02d} family={block['family']} items={n_items}")
+    session = {"participant": participant, "keys": keys, "blocks": blocks}
+    session_file_path.write_text(json.dumps(session, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 if __name__ == "__main__":
