@@ -41,7 +41,7 @@ def generate_occlusion_rotate_90(grid_size=(12, 12), size_range=(2, 5), colors=(
         grid_size=grid_size, size_range=size_range, colors=colors
     )
     grid_output = grid_input.copy()
-    grid_output.rotate_left_90()
+    grid_output.rotate_ccw_90()
 
     params = {
         "grid_size": grid_size,
@@ -57,8 +57,7 @@ def generate_occlusion_rotate_180(grid_size=(12, 12), size_range=(2, 5), colors=
         grid_size=grid_size, size_range=size_range, colors=colors
     )
     grid_output = grid_input.copy()
-    grid_output.rotate_left_90()
-    grid_output.rotate_left_90()
+    grid_output.rotate_180()
 
     params = {
         "grid_size": grid_size,

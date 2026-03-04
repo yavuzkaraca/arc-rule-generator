@@ -14,23 +14,24 @@ from src.rules.color import (
 from src.rules.arithmetic import (
     generate_majority_recolor,
     generate_minority_recolor,
-
 )
+
 from src.rules.expansion import (
     generate_star_expansion_single_step,
     generate_star_expansion_full,
     generate_plus_expansion_single_step,
     generate_plus_expansion_full,
-    generate_3diagonal_expansion_full,
+    generate_3arm_star_expansion_full,
 )
+
 from src.rules.occlusion import (
     generate_occlusion_reversal,
 )
+
 from src.rules.attraction import (
     generate_color_attraction,
     generate_size_attraction,
-    generate_repulsion_gun,
-    generate_repulsion_ambiguous,
+    generate_repulsion,
     generate_gravity,
     generate_float, generate_dots_gravity,
 )
@@ -43,8 +44,8 @@ from src.rules.mirror_rotate import (
 )
 
 
-def main(N=15):
-    tasks = {
+def main(N=1):
+    rules = {
         "occlusion_reversal": generate_occlusion_reversal,
         "mirror_rotate.occlusion_mirror_x": generate_occlusion_mirror_x,
         "mirror_rotate.occlusion_mirror_y": generate_occlusion_mirror_y,
@@ -54,13 +55,12 @@ def main(N=15):
         "attraction.size": generate_size_attraction,
         "attraction.gravity": generate_gravity,
         "attraction.float": generate_float,
-        "attraction.repulsion_gun": generate_repulsion_gun,
-        "attraction.repulsion_ambiguous": generate_repulsion_ambiguous,
+        "attraction.repulsion_ambiguous": generate_repulsion,
         "expansion.star_step": generate_star_expansion_single_step,
         "expansion.star_full": generate_star_expansion_full,
         "expansion.plus_step": generate_plus_expansion_single_step,
         "expansion.plus_full": generate_plus_expansion_full,
-        "expansion.3diagonal_full": generate_3diagonal_expansion_full,
+        "expansion.3arm_star_full": generate_3arm_star_expansion_full,
         "arithmetic.majority_recolor": generate_majority_recolor,
         "arithmetic.minority_recolor": generate_minority_recolor,
         "color.inversion_recolor": generate_inversion_recolor,
@@ -69,12 +69,12 @@ def main(N=15):
         "attraction.gravity_dots": generate_dots_gravity,
     }
 
-    for name, gen in tasks.items():
+    for name, gen in rules.items():
         for _ in range(N):
-            _generate_task(name, gen)
+            _generate_stimulus(name, gen)
 
 
-def _generate_task(rule: str, gen, out_root: str = "out") -> None:
+def _generate_stimulus(rule: str, gen, out_root: str = "out") -> None:
     base = Path(out_root) / rule
     base.mkdir(parents=True, exist_ok=True)
     jsonl_path = base / "stimuli.jsonl"
@@ -96,10 +96,11 @@ def _generate_task(rule: str, gen, out_root: str = "out") -> None:
     save_combined_grids(inp, out, str(p_comb))
 
     family = rule.split(".", 1)[0]
+    rule_name = rule.rsplit(".", 1)[-1]
 
     stim = Stimulus(
         id=stim_id,
-        rule=rule,
+        rule=rule_name,
         family=family,
         seed=seed,
         params=params

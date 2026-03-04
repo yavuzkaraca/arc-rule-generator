@@ -14,15 +14,15 @@ class Grid:
         """Alias for set() — for semantic clarity."""
         self.set(row, col, color)
 
-    def fill_rect(self, xmin, xmax, ymin, ymax, color):
+    def fill_rect(self, col_min, col_max, row_min, row_max, color):
         """
         Fill a rectangular area with `color`.
         Args:
-            xmin, xmax: horizontal range (columns)
-            ymin, ymax: vertical range (rows)
+            col_min, col_max: horizontal range (columns)
+            row_min, row_max: vertical range (rows)
         """
-        for r in range(ymin, ymax + 1):
-            for c in range(xmin, xmax + 1):
+        for r in range(row_min, row_max + 1):
+            for c in range(col_min, col_max + 1):
                 if 0 <= r < self.rows and 0 <= c < self.cols:
                     self.grid[r][c] = color
 
@@ -39,9 +39,7 @@ class Grid:
         new_grid.grid = [row.copy() for row in self.grid]
         return new_grid
 
-    # ------------ MUTATING TRANSFORMS ------------
-
-    def rotate_left_90(self):
+    def rotate_ccw_90(self):
         """Rotate 90° counterclockwise (rows↔cols). Mutates self."""
         out = [[None] * self.rows for _ in range(self.cols)]
         for r in range(self.rows):
@@ -49,6 +47,10 @@ class Grid:
                 out[self.cols - 1 - c][r] = self.grid[r][c]
         self.grid = out
         self.rows, self.cols = self.cols, self.rows  # swap
+
+    def rotate_180(self):
+        self.rotate_ccw_90()
+        self.rotate_ccw_90()
 
     def mirror_x(self):
         """Mirror along the x-axis (horizontal axis): top ↔ bottom. Mutates self."""

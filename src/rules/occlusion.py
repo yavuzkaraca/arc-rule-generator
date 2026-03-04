@@ -15,7 +15,7 @@ def generate_occlusion_reversal(grid_size=(12, 12), size_range=(2, 5), colors=("
     # Random position for back block (x and y of bottom left corner of the back block)
     x1 = random.randint(min(size_range), cols - w - min(size_range))
     y1 = random.randint(min(size_range), rows - h - min(size_range))
-    back_block = {"xmin": x1, "ymin": y1, "xmax": x1 + w, "ymax": y1 + h, "color": colors[0]}
+    back_block = {"col_min": x1, "row_min": y1, "col_max": x1 + w, "row_max": y1 + h, "color": colors[0]}
 
     # (x and y can be any corner of the front block)
     min_x2 = x1 + 1
@@ -30,16 +30,16 @@ def generate_occlusion_reversal(grid_size=(12, 12), size_range=(2, 5), colors=("
     corner = random.choice(["tl", "tr", "bl", "br"])
 
     if corner == "tl":
-        front_block = {"xmin": x2, "ymin": y2 - h, "xmax": x2 + w, "ymax": y2, "color": colors[1]}
+        front_block = {"col_min": x2, "row_min": y2 - h, "col_max": x2 + w, "row_max": y2, "color": colors[1]}
 
     elif corner == "tr":
-        front_block = {"xmin": x2 - w, "ymin": y2 - h, "xmax": x2, "ymax": y2, "color": colors[1]}
+        front_block = {"col_min": x2 - w, "row_min": y2 - h, "col_max": x2, "row_max": y2, "color": colors[1]}
 
     elif corner == "bl":
-        front_block = {"xmin": x2, "ymin": y2, "xmax": x2 + w, "ymax": y2 + h, "color": colors[1]}
+        front_block = {"col_min": x2, "row_min": y2, "col_max": x2 + w, "row_max": y2 + h, "color": colors[1]}
 
     else:
-        front_block = {"xmin": x2 - w, "ymin": y2, "xmax": x2, "ymax": y2 + h, "color": colors[1]}
+        front_block = {"col_min": x2 - w, "row_min": y2, "col_max": x2, "row_max": y2 + h, "color": colors[1]}
 
     # Input: back first, front second
     grid_input.fill_rect(**back_block)
