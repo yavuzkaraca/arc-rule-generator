@@ -44,9 +44,9 @@ from src.rules.mirror_rotate import (
 )
 
 
-def main(N=1):
+def main(N=13):
     rules = {
-        "occlusion_reversal": generate_occlusion_reversal,
+        "occlusion.occlusion_reversal": generate_occlusion_reversal,
         "mirror_rotate.occlusion_mirror_x": generate_occlusion_mirror_x,
         "mirror_rotate.occlusion_mirror_y": generate_occlusion_mirror_y,
         "mirror_rotate.occlusion_rotate_90": generate_occlusion_rotate_90,
@@ -55,7 +55,7 @@ def main(N=1):
         "attraction.size": generate_size_attraction,
         "attraction.gravity": generate_gravity,
         "attraction.float": generate_float,
-        "attraction.repulsion_ambiguous": generate_repulsion,
+        "attraction.repulsion": generate_repulsion,
         "expansion.star_step": generate_star_expansion_single_step,
         "expansion.star_full": generate_star_expansion_full,
         "expansion.plus_step": generate_plus_expansion_single_step,

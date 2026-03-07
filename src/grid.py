@@ -1,8 +1,8 @@
 class Grid:
-    def __init__(self, rows, cols, default_color="black"):
+    def __init__(self, rows, cols, background="black"):
         self.rows = rows
         self.cols = cols
-        self.grid = [[default_color for _ in range(cols)] for _ in range(rows)]
+        self.grid = [[background for _ in range(cols)] for _ in range(rows)]
 
     def set(self, row, col, color):
         self.grid[row][col] = color
@@ -67,3 +67,43 @@ class Grid:
             for c in range(self.cols):
                 out[r][self.cols - 1 - c] = self.grid[r][c]
         self.grid = out
+
+    def get_occupied_bounding_box(self, background="black"):
+        """
+        Return the tight bounding box of all non-background cells as:
+        (row_min, row_max, col_min, col_max)
+        """
+        row_min, row_max = self.rows, -1
+        col_min, col_max = self.cols, -1
+
+        for r in range(self.rows):
+            for c in range(self.cols):
+                if self.get(r, c) != background:
+                    row_min = min(row_min, r)
+                    row_max = max(row_max, r)
+                    col_min = min(col_min, c)
+                    col_max = max(col_max, c)
+
+        return row_min, row_max, col_min, col_max
+
+    def extract_box(self, row_min, row_max, col_min, col_max):
+        """
+        Return a new Grid containing only the selected bbox.
+        """
+        new_rows = row_max - row_min + 1
+        new_cols = col_max - col_min + 1
+        out = Grid(new_rows, new_cols)
+
+        for r in range(new_rows):
+            for c in range(new_cols):
+                out.set(r, c, self.get(row_min + r, col_min + c))
+
+        return out
+
+    def paste_at(self, other, row_offset, col_offset):
+        """
+        Paste another grid into self at the given top-left offset.
+        """
+        for r in range(other.rows):
+            for c in range(other.cols):
+                self.set(row_offset + r, col_offset + c, other.get(r, c))
