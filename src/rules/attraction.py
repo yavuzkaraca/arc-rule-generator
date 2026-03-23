@@ -4,11 +4,17 @@ from src.grid import Grid
 from src.util import rand_between
 
 
-def generate_color_attraction(grid_size=(12, 12), size_range=(2, 5), colors=("red", "blue")):
+def generate_color_attraction(grid_size=(12, 12), size_range=(2, 4), colors=("red", "blue")):
     rows, cols = grid_size
     grid_input, grid_output = Grid(rows, cols), Grid(rows, cols)
 
-    w1, h1, w2, h2 = (rand_between(*size_range) for _ in range(4))
+    w1 = rand_between(*size_range)
+    h1 = rand_between(*size_range)
+
+    # make blue bigger for clear distinction from size attraction
+    w2 = rand_between(w1 + 1, size_range[1]+1)
+    h2 = rand_between(h1 + 1, size_range[1]+1)
+
 
     x1 = rand_between(0, cols - w1 - w2 - 1)
     y1 = rand_between(0, rows - h1 - 1)
@@ -40,8 +46,8 @@ def generate_size_attraction(grid_size=(12, 12), size_range=(3, 6), colors=("red
     grid_input, grid_output = Grid(rows, cols), Grid(rows, cols)
 
     w1, h1 = (rand_between(*size_range) for _ in range(2))
-    w2 = rand_between(1, w1 - 1)
-    h2 = rand_between(1, h1 - 1)
+    w2 = rand_between(2, w1 - 1)
+    h2 = rand_between(2, h1 - 1)
 
     x1 = rand_between(0, cols - w1 - w2 - 1)
     y1 = rand_between(0, rows - h1 - 1)
@@ -55,7 +61,8 @@ def generate_size_attraction(grid_size=(12, 12), size_range=(3, 6), colors=("red
     grid_input.fill_rect(col_min=x2, row_min=y2, col_max=x2 + w2 - 1, row_max=y2 + h2 - 1, color=colors[c_small])
 
     grid_output.fill_rect(col_min=x1, row_min=y1, col_max=x1 + w1 - 1, row_max=y1 + h1 - 1, color=colors[c_big])
-    grid_output.fill_rect(col_min=x1 + w1, row_min=y2, col_max=x1 + w1 + w2 - 1, row_max=y2 + h2 - 1, color=colors[c_small])
+    grid_output.fill_rect(col_min=x1 + w1, row_min=y2, col_max=x1 + w1 + w2 - 1, row_max=y2 + h2 - 1,
+                          color=colors[c_small])
 
     for _ in range(random.randrange(4)):  # 0–3 times
         grid_input.rotate_ccw_90()
@@ -70,17 +77,17 @@ def generate_size_attraction(grid_size=(12, 12), size_range=(3, 6), colors=("red
     return grid_input, grid_output, params
 
 
-def generate_repulsion(grid_size=(12, 12), size_range=(1, 6), colors=("red", "blue")):
+def generate_repulsion(grid_size=(12, 12), size_range=(2, 5), colors=("red", "blue")):
     rows, cols = grid_size
     grid_input, grid_output = Grid(rows, cols), Grid(rows, cols)
 
     w1, h1, w2, h2 = (rand_between(*size_range) for _ in range(4))
 
     x1 = rand_between(0, cols - w1 - w2 - 1)
-    y1 = rand_between(0, rows - h1 - 1)
+    y1 = rand_between(h2, rows - h1 - 1)
 
-    x2 = rand_between(x1 + 1, x1 + w1 - 1)
-    y2 = rand_between(y1 + 1, y1 + h1 - 1)
+    x2 = rand_between(x1 + w1 // 2 + 1, x1 + w1 - 1)
+    y2 = rand_between(y1 - h2 // 2 + 1, y1 + h2 // 2 - 1)
 
     grid_input.fill_rect(col_min=x1, row_min=y1, col_max=x1 + w1 - 1, row_max=y1 + h1 - 1, color=colors[0])
     grid_input.fill_rect(col_min=x2, row_min=y2, col_max=x2 + w2 - 1, row_max=y2 + h2 - 1, color=colors[1])
@@ -101,7 +108,7 @@ def generate_repulsion(grid_size=(12, 12), size_range=(1, 6), colors=("red", "bl
     return grid_input, grid_output, params
 
 
-def generate_gravity(grid_size=(12, 12), size_range=(1, 6), colors=("red", "blue")):
+def generate_gravity(grid_size=(12, 12), size_range=(2, 6), colors=("red", "blue")):
     rows, cols = grid_size
     grid_input, grid_output = Grid(rows, cols), Grid(rows, cols)
 
@@ -130,13 +137,11 @@ def generate_gravity(grid_size=(12, 12), size_range=(1, 6), colors=("red", "blue
     return grid_input, grid_output, params
 
 
-def generate_float(grid_size=(12, 12), size_range=(1, 6), colors=("red", "blue")):
+def generate_float(grid_size=(12, 12), size_range=(2, 6), colors=("red", "blue")):
     grid_input, grid_output, params = generate_gravity(grid_size=grid_size, size_range=size_range, colors=colors)
-    # TODO: funny idea
-    grid_input.rotate_ccw_90()
-    grid_input.rotate_ccw_90()
-    grid_output.rotate_ccw_90()
-    grid_output.rotate_ccw_90()
+    # funny idea: floating is opposite direction gravity
+    grid_input.rotate_180()
+    grid_output.rotate_180()
 
     params = {
         "grid_size": grid_size,

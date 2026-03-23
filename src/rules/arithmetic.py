@@ -8,7 +8,7 @@ def generate_majority_recolor(grid_size=(12, 12), block_num=(2, 6), colors=("red
     grid_input, grid_output = Grid(rows, cols), Grid(rows, cols)
 
     n1 = rand_between(*block_num)
-    n2 = rand_between(block_num[0] - 1, n1 - 1) if n1 > 1 else 1
+    n2 = rand_between(block_num[0] - 1, (n1+1)//2)
 
     color1, color2 = random.sample(colors, 2)
 
@@ -38,7 +38,7 @@ def generate_minority_recolor(grid_size=(12, 12), block_num=(2, 6), colors=("red
     grid_input, grid_output = Grid(rows, cols), Grid(rows, cols)
 
     n1 = rand_between(*block_num)
-    n2 = rand_between(block_num[0] - 1, n1 - 1) if n1 > 1 else 1
+    n2 = rand_between(block_num[0] - 1, (n1+1)//2)
 
     color1, color2 = random.sample(colors, 2)
 
