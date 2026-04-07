@@ -27,6 +27,9 @@ def generate_star_expansion_single_step(grid_size=(12, 12), star_num=(1, 4), col
         grid_output.fill_cell(x, y, colors[0])  # refill the origin points that might have been over-colored
 
     params = {
+        "event": "expansion",
+        "condition": "shape",
+        "stimulus": ["dots", "star"],
         "grid_size": grid_size,
         "colors": colors,
         "n_objects": n
@@ -65,6 +68,9 @@ def generate_star_expansion_full(grid_size=(12, 12), star_num=(1, 3), colors=("r
         grid_output.fill_cell(x0, y0, colors[0])  # refill the origin points that might have been over-colored
 
     params = {
+        "event": "expansion",
+        "condition": "shape",
+        "stimulus": ["dots", "star"],
         "grid_size": grid_size,
         "colors": colors,
         "n_objects": n
@@ -95,6 +101,9 @@ def generate_plus_expansion_single_step(grid_size=(12, 12), plus_num=(1, 4), col
         grid_output.fill_cell(x, y, colors[0])  # refill the origin points that might have been over-colored
 
     params = {
+        "event": "expansion",
+        "condition": "shape",
+        "stimulus": ["dots", "plus"],
         "grid_size": grid_size,
         "colors": colors,
         "n_objects": n
@@ -133,6 +142,9 @@ def generate_plus_expansion_full(grid_size=(12, 12), plus_num=(1, 3), colors=("r
         grid_output.fill_cell(x0, y0, colors[0])  # refill the origin points that might have been over-colored
 
     params = {
+        "event": "expansion",
+        "condition": "shape",
+        "stimulus": ["dots", "plus"],
         "grid_size": grid_size,
         "colors": colors,
         "n_objects": n
@@ -178,6 +190,9 @@ def generate_3arm_star_expansion_full(grid_size=(12, 12), star_num=(1, 3), color
         grid_output.fill_cell(x0, y0, colors[0])  # refill the origin points that might have been over-colored
 
     params = {
+        "event": "expansion",
+        "condition": "shape",
+        "stimulus": ["dots", "star"],
         "grid_size": grid_size,
         "colors": colors,
         "n_objects": n

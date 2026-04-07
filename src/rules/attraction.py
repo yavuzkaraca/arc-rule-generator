@@ -12,9 +12,8 @@ def generate_color_attraction(grid_size=(12, 12), size_range=(2, 4), colors=("re
     h1 = rand_between(*size_range)
 
     # make blue bigger for clear distinction from size attraction
-    w2 = rand_between(w1 + 1, size_range[1]+1)
-    h2 = rand_between(h1 + 1, size_range[1]+1)
-
+    w2 = rand_between(w1 + 1, size_range[1] + 1)
+    h2 = rand_between(h1 + 1, size_range[1] + 1)
 
     x1 = rand_between(0, cols - w1 - w2 - 1)
     y1 = rand_between(0, rows - h1 - 1)
@@ -33,6 +32,9 @@ def generate_color_attraction(grid_size=(12, 12), size_range=(2, 4), colors=("re
         grid_output.rotate_ccw_90()
 
     params = {
+        "event": "attraction",
+        "condition": ["color", "movement"],
+        "stimulus": "big_blocks",
         "grid_size": grid_size,
         "colors": colors,
         "n_objects": 2
@@ -69,6 +71,9 @@ def generate_size_attraction(grid_size=(12, 12), size_range=(3, 6), colors=("red
         grid_output.rotate_ccw_90()
 
     params = {
+        "event": "attraction",
+        "condition": ["shape", "movement"],
+        "stimulus": "big_blocks",
         "grid_size": grid_size,
         "colors": colors,
         "n_objects": 2
@@ -100,6 +105,9 @@ def generate_repulsion(grid_size=(12, 12), size_range=(2, 5), colors=("red", "bl
         grid_output.rotate_ccw_90()
 
     params = {
+        "event": "attraction",
+        "condition": ["color", "movement"],
+        "stimulus": "big_blocks",
         "grid_size": grid_size,
         "colors": colors,
         "n_objects": 2
@@ -129,6 +137,9 @@ def generate_gravity(grid_size=(12, 12), size_range=(2, 6), colors=("red", "blue
     grid_output.fill_rect(col_min=x2, row_min=0, col_max=x2 + w2 - 1, row_max=0 + h2 - 1, color=colors[c_small])
 
     params = {
+        "event": "attraction",
+        "condition": "movement",
+        "stimulus": "big_blocks",
         "grid_size": grid_size,
         "colors": colors,
         "n_objects": 2
@@ -144,6 +155,9 @@ def generate_float(grid_size=(12, 12), size_range=(2, 6), colors=("red", "blue")
     grid_output.rotate_180()
 
     params = {
+        "event": "attraction",
+        "condition": "movement",
+        "stimulus": "big_blocks",
         "grid_size": grid_size,
         "colors": colors,
         "n_objects": 2
@@ -168,7 +182,15 @@ def generate_dots_gravity(
 
     grid_output = apply_gravity(grid_input)
 
-    params = {"grid_size": grid_size, "colors": colors, "n_objects": n}
+    params = {
+        "event": "attraction",
+        "condition": "movement",
+        "stimulus": "dots",
+        "grid_size": grid_size,
+        "colors": colors,
+        "n_objects": n
+    }
+
     return grid_input, grid_output, params
 
 
