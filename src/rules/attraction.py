@@ -4,16 +4,11 @@ from src.grid import Grid
 from src.util import rand_between
 
 
-def generate_color_attraction(grid_size=(12, 12), size_range=(2, 4), colors=("red", "blue")):
+def generate_color_attraction(grid_size=(12, 12), size_range=(2, 5), colors=("red", "blue")):
     rows, cols = grid_size
     grid_input, grid_output = Grid(rows, cols), Grid(rows, cols)
 
-    w1 = rand_between(*size_range)
-    h1 = rand_between(*size_range)
-
-    # make blue bigger for clear distinction from size attraction
-    w2 = rand_between(w1 + 1, size_range[1] + 1)
-    h2 = rand_between(h1 + 1, size_range[1] + 1)
+    w1, h1, w2, h2 = (rand_between(*size_range) for _ in range(4))
 
     x1 = rand_between(0, cols - w1 - w2 - 1)
     y1 = rand_between(0, rows - h1 - 1)
@@ -37,7 +32,8 @@ def generate_color_attraction(grid_size=(12, 12), size_range=(2, 4), colors=("re
         "stimulus": "big_blocks",
         "grid_size": grid_size,
         "colors": colors,
-        "n_objects": 2
+        "n_objects": 2,
+        "bigger_block": "red" if (w1*h1 > w2*h2) else "blue"
     }
 
     return grid_input, grid_output, params
@@ -91,7 +87,7 @@ def generate_repulsion(grid_size=(12, 12), size_range=(2, 5), colors=("red", "bl
     x1 = rand_between(0, cols - w1 - w2 - 1)
     y1 = rand_between(h2, rows - h1 - 1)
 
-    x2 = rand_between(x1 + w1 // 2 + 1, x1 + w1 - 1)
+    x2 = x1 + w1
     y2 = rand_between(y1 - h2 // 2 + 1, y1 + h2 // 2 - 1)
 
     grid_input.fill_rect(col_min=x1, row_min=y1, col_max=x1 + w1 - 1, row_max=y1 + h1 - 1, color=colors[0])

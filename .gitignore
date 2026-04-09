@@ -1,5 +1,5 @@
 # Temporarily ignore generated datasets
-experiment/fMRI/out/
+# experiment/fMRI/out/ included again
 out/
 
 

@@ -44,36 +44,34 @@ from src.rules.attraction import (
 
 
 """
-rules = {
-    "occlusion.occlusion_reversal": generate_occlusion_reversal,
-    "occlusion.occlusion_mirror_x": generate_occlusion_mirror_x,
-    "occlusion.occlusion_mirror_y": generate_occlusion_mirror_y,
-    "occlusion.occlusion_rotate_90": generate_occlusion_rotate_90,
-    "occlusion.occlusion_rotate_180": generate_occlusion_rotate_180,
-    "attraction.color": generate_color_attraction,
-    "attraction.size": generate_size_attraction,
-    "attraction.gravity": generate_gravity,
-    "attraction.float": generate_float,
-    "attraction.repulsion": generate_repulsion,
-    "attraction.gravity_dots": generate_dots_gravity,
-    "expansion.star_step": generate_star_expansion_single_step,
-    "expansion.star_full": generate_star_expansion_full,
-    "expansion.plus_step": generate_plus_expansion_single_step,
-    "expansion.plus_full": generate_plus_expansion_full,
-    "expansion.3arm_star_full": generate_3arm_star_expansion_full,
-    "arithmetic.dot_majority_recolor": generate_dot_majority_recolor,
-    "arithmetic.dot_minority_recolor": generate_dot_minority_recolor,
-    "arithmetic.cross_plus_minority_recolor": generate_cross_plus_majority_recolor,
-    "recoloring.dot_inversion_recolor": generate_dot_inversion_recolor,
-    "recoloring.dot_neighbor_recolor": generate_dot_neighbor_recolor,
-    "recoloring.cross_plus_shape_fixed_recolor": generate_cross_plus_shape_fixed_recolor,
-    "recoloring.cross_plus_cyclic_recolor": generate_cross_plus_cyclic_recolor,
-}
+For testing
 """
 
 def main(N):
 
     rules = {
+        "occlusion.occlusion_reversal": generate_occlusion_reversal,
+        "occlusion.occlusion_mirror_x": generate_occlusion_mirror_x,
+        "occlusion.occlusion_mirror_y": generate_occlusion_mirror_y,
+        "occlusion.occlusion_rotate_90": generate_occlusion_rotate_90,
+        "occlusion.occlusion_rotate_180": generate_occlusion_rotate_180,
+        "attraction.color": generate_color_attraction,
+        "attraction.size": generate_size_attraction,
+        "attraction.gravity": generate_gravity,
+        "attraction.float": generate_float,
+        "attraction.repulsion": generate_repulsion,
+        "attraction.gravity_dots": generate_dots_gravity,
+        "expansion.star_step": generate_star_expansion_single_step,
+        "expansion.star_full": generate_star_expansion_full,
+        "expansion.plus_step": generate_plus_expansion_single_step,
+        "expansion.plus_full": generate_plus_expansion_full,
+        "expansion.3arm_star_full": generate_3arm_star_expansion_full,
+        "arithmetic.dot_majority_recolor": generate_dot_majority_recolor,
+        "arithmetic.dot_minority_recolor": generate_dot_minority_recolor,
+        "arithmetic.cross_plus_minority_recolor": generate_cross_plus_majority_recolor,
+        "recoloring.dot_inversion_recolor": generate_dot_inversion_recolor,
+        "recoloring.dot_neighbor_recolor": generate_dot_neighbor_recolor,
+        "recoloring.cross_plus_shape_fixed_recolor": generate_cross_plus_shape_fixed_recolor,
         "recoloring.cross_plus_cyclic_recolor": generate_cross_plus_cyclic_recolor,
     }
 
@@ -119,4 +117,4 @@ def _generate_stimulus(rule: str, gen, out_root: str = "out") -> None:
 
 
 if __name__ == "__main__":
-    main(20)
+    main(30)
