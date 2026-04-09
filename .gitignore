@@ -1,6 +1,6 @@
 # Temporarily ignore generated datasets
 # experiment/fMRI/out/ included again
-out/
+# out/
 
 
 # Byte-compiled / optimized / DLL files
