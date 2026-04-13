@@ -129,7 +129,8 @@ function trialTemplate = trial_template()
         'resp',"", ...
         'is_correct',[], ...
         'rt',[], ...
-        't',[] ...
+        'stim_onset_abs',[], ...
+        'stim_onset_rel',[] ...
     );
 end
 
@@ -158,7 +159,8 @@ function trial = make_trial(trialTemplate, block, phase, ph, t, tr, resp, rt, tO
     trial.is_correct = utilities.score(resp, trial.correct);
 
     trial.rt = rt;
-    trial.t  = tOn - t0;
+    trial.stim_onset_abs = tOn;
+    trial.stim_onset_rel = tOn - t0;
 end
 
 function is_correct = score(resp, correct)
