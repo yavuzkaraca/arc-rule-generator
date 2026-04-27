@@ -324,7 +324,9 @@ function el = setup_eyelink(w, rect, dummyMode, participant)
     x1 = rect(3) - 1;
     y1 = rect(4) - 1;
 
-    Eyelink('command', 'calibration_type = HV9');
+    Eyelink('command', 'calibration_type = HV13');
+    Eyelink('command', 'calibration_area_proportion = 0.41 0.41');
+    Eyelink('command', 'validation_area_proportion = 0.41 0.41');
 
     Eyelink('command', 'file_event_filter = LEFT,RIGHT,FIXATION,SACCADE,BLINK,MESSAGE');
     Eyelink('command', 'file_sample_data = LEFT,RIGHT,GAZE,AREA');
