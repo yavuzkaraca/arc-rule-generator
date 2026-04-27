@@ -1,10 +1,9 @@
 function run_experiment(sessionPath)
-% Run by calling: run_experiment('session.json')
+% Run by calling: run_experiment("session.json")
 
 SKIP_SYNC_TESTS = 1;
 
 try
-    Screen('Preference','SkipSyncTests', SKIP_SYNC_TESTS);
     session = jsondecode(fileread(sessionPath));
     session = utilities.normalize_session(session);
 
@@ -15,9 +14,15 @@ try
     keyEsc  = KbName('ESCAPE');
 
     % ---- window ----
+    Screen('Preference','SkipSyncTests', SKIP_SYNC_TESTS);
     AssertOpenGL;
-    winRect = [0 0 1400 1400];  % [left top right bottom]
-    [w, rect] = PsychImaging('OpenWindow', 0, [0 0 0], winRect);
+    PsychImaging('PrepareConfiguration')
+
+    screen_id = max(Screen('Screens')); % usually the peripherial screen has max id
+    resolution = [1400 1400];
+    PsychImaging('AddTask', 'General', 'UsePanelFitter', resolution, 'Aspect')
+    [w, rect] = PsychImaging('OpenWindow', screen_id, [0 0 0]);
+
     Screen('ColorRange', w, 1);
     Screen('TextFont', w, 'Arial');
 
@@ -65,7 +70,7 @@ try
                 trial = utilities.make_trial( ...
                     trialTemplate, block, phase, ph, 0, tr0, resp, rt, tOn, t0);
 
-                log.trials(end+1,1) = trial; %#ok<AGROW>
+                log.trials(end+1,1) = trial;
                 continue
             end
 
