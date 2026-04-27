@@ -3,6 +3,9 @@ function run_experiment(sessionPath)
 
 SKIP_SYNC_TESTS = 1;
 
+eyelink_flag = 1;
+DUMMY_MODE = 0;
+
 try
     session = jsondecode(fileread(sessionPath));
     session = utilities.normalize_session(session);
@@ -27,6 +30,15 @@ try
     Screen('TextFont', w, 'Arial');
 
     baseDir = fileparts(sessionPath);
+    if baseDir == "" % if empty make dir
+        baseDir = pwd;
+    end
+
+    % ---- eye tracker ----
+    if eyelink_flag
+        el = utilities.setup_eyelink(w, rect, DUMMY_MODE, session.participant);
+        utilities.calibrate_eyelink(el);
+    end
 
     % ---- preload textures ----
     texCache = containers.Map();
@@ -52,6 +64,12 @@ try
     for b = 1:numel(session.blocks)
         block = session.blocks(b);
 
+        if eyelink_flag
+            utilities.msg_eyelink('BLOCK_START %d FAMILY %s', ...
+                b, char(string(block.family)));
+            utilities.start_eyelink_recording();
+        end
+
         for ph = 1:numel(block.phases)
             phase = block.phases(ph);
             phaseName = string(phase.phase);
@@ -62,6 +80,12 @@ try
                     tr0 = phase.trial(1);
                 else
                     tr0 = struct;
+                end
+
+                trialId = sprintf('%d_%d_%d', b, ph, 0);
+
+                if eyelink_flag
+                    utilities.msg_eyelink('TRIALID %s', trialId);
                 end
 
                 [resp, rt, tOn] = utilities.twoimg_screen( ...
@@ -82,6 +106,12 @@ try
             for t = 1:numel(phase.trials)
                 tr = phase.trials(t);
 
+                trialId = sprintf('%d_%d_%d', b, ph, t);
+
+                if eyelink_flag
+                    utilities.msg_eyelink('TRIALID %s', trialId);
+                end
+
                 [resp, rt, tOn] = utilities.twoimg_screen( ...
                     w, rect, phase, tr, texCache, keySame, keyDiff, keyEsc);
 
@@ -91,16 +121,31 @@ try
                 log.trials(end+1,1) = trial; %#ok<AGROW>
             end
         end
+
+        if eyelink_flag
+            utilities.msg_eyelink('BLOCK_END %d', b);
+            utilities.stop_eyelink_recording();
+        end
     end
 
-    % ---- save log ----
+    % ---- save log and close all ----
     outName = sprintf('log_%s_%s.mat', string(session.participant), datestr(now,30));
     save(fullfile(baseDir, outName), 'log');
 
+    if eyelink_flag
+        utilities.close_eyelink(session.participant, baseDir);
+    end
     Screen('CloseAll');
 
 catch ME
-    try, Screen('CloseAll'); end %#ok<TRYNC>
+    try
+        if exist('eyelink_flag', 'var') && eyelink_flag
+            Eyelink('StopRecording');
+            Eyelink('CloseFile');
+            Eyelink('Shutdown');
+        end
+    end
+    try Screen('CloseAll'); end %#ok<TRYNC>
     rethrow(ME);
 end
 end
