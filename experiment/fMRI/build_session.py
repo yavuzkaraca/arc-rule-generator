@@ -15,8 +15,8 @@ from pathlib import Path
 def build_session(
         out_root: str = "out",
         session_path: str = "session.json",
-        participant: str = "p001",
-        seed: int = 1,
+        participant: str = "p002",
+        seed: int = 2,
         number_of_mix_blocks: int = 2,
         number_of_decision_trials_per_phase: int = 8,
 ) -> None:
@@ -59,8 +59,12 @@ def build_session(
     tip_ready = "←   Ready          Ready   →"
     tip_memorized = "←   Memorized      Memorized   →"
     tip_decide = "←   Same          Different   →"
-    inference_background, inference_hint, inference_start_hint = "green", "Previous rule", "First rule"
-    application_background, application_hint, application_start_hint = "red", "Memorized rule", "Memorize this rule"
+    inference_background, inference_hint, inference_start_hint = "yellow", "Previous rule", "First rule"
+    application_background, application_hint, application_start_hint = "cyan", "Memorized rule", "Memorize this rule"
+
+    # Swap background colors for even numbered participants
+    if seed % 2 == 0:
+        inference_background, application_background = application_background, inference_background
 
     def relative_path(image_path: Path) -> str:
         """
