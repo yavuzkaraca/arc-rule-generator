@@ -15,7 +15,10 @@ from src.rules.recolor import (
 from src.rules.arithmetic import (
     generate_dot_majority_recolor,
     generate_dot_minority_recolor,
-    generate_cross_plus_majority_recolor, generate_cross_plus_minority_recolor,
+    generate_cross_plus_majority_recolor,
+    generate_cross_plus_minority_recolor,
+    generate_dot_equalize_recolor,
+    generate_dot_diff_two_recolor,
 )
 
 from src.rules.expansion import (
@@ -64,6 +67,8 @@ def main(N):
         "expansion.3arm_star_ray": generate_3arm_star_expansion_ray,
         "arithmetic.dot_majority_recolor": generate_dot_majority_recolor,
         "arithmetic.dot_minority_recolor": generate_dot_minority_recolor,
+        "arithmetic.dot_equalize_recolor": generate_dot_equalize_recolor,
+        "arithmetic.dot_diff_two_recolor": generate_dot_diff_two_recolor,
         "arithmetic.cross_plus_majority_recolor": generate_cross_plus_majority_recolor,
         "arithmetic.cross_plus_minority_recolor": generate_cross_plus_minority_recolor,
         "recoloring.dot_inversion_recolor": generate_dot_inversion_recolor,
