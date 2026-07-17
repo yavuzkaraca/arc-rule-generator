@@ -13,9 +13,9 @@ from pathlib import Path
 
 if __name__ == "__main__":
 
-    out_root: str = "out"
-    session_path: str = "session.json"
-    participant: str = "p01"  # must be "pXX" with X is a digit
+    stimulus_dataset_dir: str = "out"  # rename the folder later
+    output_dir: str = "."
+    participant: str = "p01"  # must be "pXX" where X is a digit
 
     number_of_sessions: int = 6  # must be even number for balancing blocks
     number_of_decision_trials_per_block: int = 8  # decision trials > 2 * number of rules in a family
@@ -30,14 +30,14 @@ if __name__ == "__main__":
     # Setup                                                              #
     # ------------------------------------------------------------------ #
 
-    out_root_path = Path(out_root).resolve()
-    base_dir = Path(session_path).resolve().parent
+    stimulus_dataset_path = Path(stimulus_dataset_dir).resolve()
+    base_dir = Path(output_dir).resolve()
     base_dir.mkdir(parents=True, exist_ok=True)
 
     # Collect pools: pools[family][rule] -> list of stimulus records (each record points to its combined image)
     pools: dict[str, dict[str, list[dict]]] = {}
 
-    for rule_directory in out_root_path.iterdir():
+    for rule_directory in stimulus_dataset_path.iterdir():
         for row in map(json.loads, (rule_directory / "stimuli.jsonl").read_text(encoding="utf-8").splitlines()):
             family = row["family"]
             rule = row["rule"]
