@@ -2,9 +2,9 @@
 Build "session.json" for the fMRI experiment on MATLAB/PTB.
 
 Make sure your generated stimulus dataset has:
-- at least 2 rules in each family
-- at least twice many decision trials as rule number (in each family)
-- at least half many stimuli in each rule as decision trials
+- at least 2 rules in each family to enable comparison
+- at least twice many decision trials as rule number in a family for rule coverage
+- at least half many stimuli in each rule as decision trials (bc each trial presents two stimuli)
 """
 
 import json
@@ -15,10 +15,10 @@ if __name__ == "__main__":
 
     out_root: str = "out"
     session_path: str = "session.json"
-    participant: str = "p01"  # max 3 chars
+    participant: str = "p01"  # must be "pXX" with X is a digit
 
-    number_of_sessions: int = 6  # alternating starting context: so choose even numbers for balance
-    number_of_decision_trials_per_block: int = 8
+    number_of_sessions: int = 6  # must be even number for balancing blocks
+    number_of_decision_trials_per_block: int = 8  # decision trials > 2 * number of rules in a family
 
     # Counterbalance frame colors (yellow/cyan) for contexts
     if int(participant.removeprefix("p")) % 2 == 0:
